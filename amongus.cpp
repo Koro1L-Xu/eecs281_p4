@@ -1,7 +1,6 @@
 // Project Identifier: 9B734EC0C043C5A836EA0EBE4BEFEA164490B2C7
 #include <iostream>
 #include <cassert>
-#include <ctime>
 #include <iomanip>
 #include "amongus.h"
 
@@ -10,8 +9,6 @@ using namespace std;
 
 int main(int argc, char *argv[]) {
 
-    clock_t start, end;
-    start = clock();
     ios_base::sync_with_stdio(false);
     cout << std::setprecision(2);
     cout << std::fixed;
@@ -40,7 +37,5 @@ int main(int argc, char *argv[]) {
     else
         graph.runOPTTSP();
 
-    end = clock();
-    cout<<"time = "<<double(end-start)/CLOCKS_PER_SEC<<" s"<<endl;  //输出时间（单位：ｓ）
     return 0;
 }
