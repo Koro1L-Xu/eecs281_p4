@@ -37,8 +37,6 @@ public:
     void runFASTTSP();
     void runOPTTSP();
     void genPerm(int pathLength, vector<int>& index);
-    static void reverse_int(int s, int e, vector<int>& index);
-    static void reverse_double(int s, int e, vector<double>& index);
 };
 
 void Graph::readVertex() {
@@ -132,48 +130,24 @@ void Graph::runMST() {
 
 void Graph::runFASTTSP() {
 
-    distance.reserve(vertex.size());
-    isVisited.resize(vertex.size(), false);
     parent.reserve(vertex.size()+1);
-    int p = 0;
-    while (true){
-        isVisited[p] = true;
-        parent.emplace_back(p);
-        int t = -1;
-        double dis = numeric_limits<double>::infinity();
-        for (int i = 0; i < (int)vertex.size(); ++i) {
-            if (!isVisited[i]){
-                double d = dist(p, i);
-                if (d < dis){
-                    t = i;
-                    dis = d;
-                }
-            }
-        }
-        if (t == -1)
-            break;
-        else {
-            distance.emplace_back(dis);
-            weight += dis;
-            p = t;
-        }
-    }
-    distance.emplace_back(dist(0, p));
-    weight += distance.back();
+    parent.emplace_back(0);
     parent.emplace_back(0);
 
-    for (int i = 1; i < (int) parent.size() - 2; ++i) {
-        for (int j = i + 1; j < (int) parent.size() - 1; ++j) {
-            double d1 = dist(parent[i], parent[j+1]);
-            double d2 = dist(parent[i-1], parent[j]);
-            if (distance[i-1] + distance[j] > d1 + d2){
-                reverse_int(i, j, parent);
-                reverse_double(i, j-1, distance);
-                weight += - distance[i-1] - distance[j] + d2 + d1;
-                distance[i-1] = d2; distance[j] = d1;
+    for (int i = 1; i < (int)vertex.size(); ++i) {
+        double d = numeric_limits<double>::infinity();
+        int t = -1;
+        for (int j = 0; j < (int)parent.size() - 1; ++j) {
+            double x = dist(parent[j], i) + dist(parent[j+1], i) - dist(parent[j], parent[j+1]);
+            if (x < d){
+                d = x;
+                t = j;
             }
         }
+        weight += d;
+        parent.emplace(parent.begin() + t + 1, i);
     }
+
     cout << weight << '\n';
     for (int i = 0; i < (int) parent.size() - 1; ++i) {
         cout << parent[i] << ' ';
@@ -182,53 +156,6 @@ void Graph::runFASTTSP() {
 }
 
 void Graph::runOPTTSP() {
-
-    /* ------------------- Approximation --------------------- */
-    vector<int> index;
-    distance.reserve(vertex.size());
-    isVisited.resize(vertex.size(), false);
-    index.reserve(vertex.size()+1);
-    int p = 0;
-    while (true){
-        isVisited[p] = true;
-        index.emplace_back(p);
-        int t = -1;
-        double dis = numeric_limits<double>::infinity();
-        for (int i = 0; i < (int)vertex.size(); ++i) {
-            if (!isVisited[i]){
-                double d = dist(p, i);
-                if (d < dis){
-                    t = i;
-                    dis = d;
-                }
-            }
-        }
-        if (t == -1)
-            break;
-        else {
-            distance.emplace_back(dis);
-            weight += dis;
-            p = t;
-        }
-    }
-    distance.emplace_back(dist(0, p));
-    weight += distance.back();
-    index.emplace_back(0);
-    for (int i = 1; i < (int) index.size() - 2; ++i) {
-        for (int j = i + 1; j < (int) index.size() - 1; ++j) {
-            double d1 = dist(index[i], index[j+1]);
-            double d2 = dist(index[i-1], index[j]);
-            if (distance[i-1] + distance[j] > d1 + d2){
-                reverse_int(i, j, index);
-                reverse_double(i, j-1, distance);
-                weight += - distance[i-1] - distance[j] + d2 + d1;
-                distance[i-1] = d2; distance[j] = d1;
-            }
-        }
-    }
-    index.pop_back();
-    parent = index;
-    /* ------------------- Loop on each solution --------------------- */
 
     Dis.resize(vertex.size());
     for (int i = 0; i < (int) Dis.size(); ++i) {
@@ -242,6 +169,45 @@ void Graph::runOPTTSP() {
             Dis[i][j] = Dis[j][i];
         }
     }
+
+    /* ------------------- Approximation --------------------- */
+    vector<int> index;
+    distance.reserve(vertex.size());
+    isVisited.resize(vertex.size(), false);
+    index.resize(vertex.size()+1);
+    weight = numeric_limits<double>::infinity();
+    for (int i = 0; i < (int)vertex.size(); ++i) {
+        int p = i;
+        cost = 0;
+        vector<int> vec;
+        vec.reserve(vertex.size() + 1);
+        vec.emplace_back(p);
+        vec.emplace_back(p);
+        for (int j = p + 1; j < p + (int)vertex.size(); ++j) {
+            int t = j % (int)vertex.size();
+            double val = numeric_limits<double>::infinity();
+            int n;
+            for (int k = 0; k < (int)vec.size() - 1; ++k) {
+                double v = Dis[vec[k]][t] + Dis[vec[k+1]][t] - Dis[vec[k]][vec[k+1]];
+                if (v < val) {
+                    n = k;
+                    val = v;
+                }
+            }
+            cost += val;
+            vec.emplace(vec.begin() + 1 + n, t);
+        }
+        if (cost < weight){
+            weight = cost;
+            for (int j = 0; j < (int)vertex.size() + 1; ++j) {
+                index[j] = vec[j];
+            }
+        }
+    }
+    index.pop_back();
+    parent = index;
+    /* ------------------- Loop on each solution --------------------- */
+
     cost = 0;
     genPerm(1, index);
     cout << weight << '\n';
@@ -251,35 +217,19 @@ void Graph::runOPTTSP() {
     cout << '\n';
 }
 
-void Graph::reverse_int(int s, int e, vector<int> &index) {
-    while (s < e){
-        swap(index[s], index[e]);
-        s++; e--;
-    }
-}
-
-void Graph::reverse_double(int s, int e, vector<double> &index) {
-    while (s < e){
-        swap(index[s], index[e]);
-        s++; e--;
-    }
-}
-
 void Graph::genPerm(int pathLength, vector<int> &index) {
     if (pathLength == (int)index.size()){
-        cost += Dis[0][index.back()];
+        cost += Dis[index.front()][index.back()];
         if (cost < weight){
             weight = cost;
             for (int i = 0; i < (int)parent.size(); ++i) {
                 parent[i] = index[i];
             }
         }
-        cost -= Dis[0][index.back()];
+        cost -= Dis[index.front()][index.back()];
     }
-    if ((int)index.size() - pathLength >= 1){
-        if (mstLength(index, pathLength) + cost >= weight)
-            return;
-    }
+    if (mstLength(index, pathLength) + cost >= weight)
+        return;
     for (int i = pathLength; i < (int)index.size(); ++i) {
         swap(index[pathLength], index[i]);
         cost += Dis[index[pathLength]][index[pathLength-1]];
@@ -331,8 +281,8 @@ double Graph::mstLength(const vector<int> &index, int n) {
     re += d;
     d = numeric_limits<double>::infinity();
     for (int i = n; i < (int)index.size(); ++i) {
-        if (Dis[index[i]][0] < d){
-            d = Dis[index[i]][0];
+        if (Dis[index[i]][index.front()] < d){
+            d = Dis[index[i]][index.front()];
         }
     }
     return re + d;
