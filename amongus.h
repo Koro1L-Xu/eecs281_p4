@@ -197,10 +197,18 @@ void Graph::runOPTTSP() {
             cost += val;
             vec.emplace(vec.begin() + 1 + n, t);
         }
+        vec.pop_back();
         if (cost < weight){
             weight = cost;
-            for (int j = 0; j < (int)vertex.size() + 1; ++j) {
-                index[j] = vec[j];
+            int ss{};
+            for (int j = 0; j < (int)vec.size(); ++j) {
+                if (vec[j] == 0){
+                    ss = j;
+                    break;
+                }
+            }
+            for (int j = ss; j < ss + (int)vertex.size(); ++j) {
+                index[j-ss] = vec[j % (int)vertex.size()];
             }
         }
     }
